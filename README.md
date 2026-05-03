@@ -19,9 +19,6 @@ Instructions below are for **Non-system encryption**.
 Build and Install
 ---
 
-This install method avoids messing with your distribution `cryptsetup*` packages; however, it can't be used for system encryption.
-
-Works with `libgcrypt11-dev` or `libgcrypt20-dev` depending on what's available for your system.
 
     if ! apt-cache policy | grep "universe" &>/dev/null; then echo -e "\e[43mEnable universe repository, through software-properties-gtk""\e[0m"; software-properties-gtk &>/dev/null ; else echo "OK"; fi
     sudo apt-get install git libgcrypt20-dev libdevmapper-dev libpopt-dev uuid-dev libtool automake autopoint debhelper xsltproc docbook-xsl dpkg-dev lvm2
@@ -31,6 +28,8 @@ Works with `libgcrypt11-dev` or `libgcrypt20-dev` depending on what's available 
     make
     sudo ln -s `readlink -f src/cryptsetup` /usr/bin/cryptd
     cryptd --help
+
+Build dependcy is either `libgcrypt11-dev` or `libgcrypt20-dev` depending on what's available for your system.
 
 cryptd binary and libaries will run from the /src folder, to avoid conflicts with system native cryptsetup. Keep this folder.
 
@@ -74,8 +73,6 @@ To close:
 
 Create and Mount a Filesystem
 ---
-
-After installing `cryptsetup-deluks` (`cryptd`) create and open the DeLUKS volume:
 
 Create and Mount the filesystem:
 
