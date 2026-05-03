@@ -2,72 +2,40 @@
 
 [![DeLUKS: Deniable Linux Unified Key Setup](https://raw.githubusercontent.com/kriswebdev/grub-crypto-deluks/gh-pages/assets/deluks_logo.png)](https://github.com/kriswebdev/grub-crypto-deluks)
 
-This repository presents an implementation of a plausibly deniable LUKS header in **`cryptsetup`**.
+This repository is an implementation of plausibly deniable LUKS header in **`cryptsetup`**.
 
-DeLUKS provides most benefits of LUKS and of plausibly [deniable encryption](https://en.wikipedia.org/wiki/Deniable_encryption). The DeLUKS header is designed to be indistinguishible from random data. This is like Truecrypt header, but with **GRUB support**, **multiple keyslots** and *(to be implemented)* an **evolutive protection against brute-forcing**.
+DeLUKS provides most benefits of LUKS and of plausibly [deniable encryption](https://en.wikipedia.org/wiki/Deniable_encryption). The DeLUKS header is designed to be indistinguishible from random data. This is like Truecrypt header, but with **GRUB support**, **multiple keyslots**. Evolutive protection against brute-forcing is not implemented.
 
-For system encryption, there is a parrallel project to implement DeLUKS in GRUB Cryptomount: **[grub-crypto-deluks](https://github.com/kriswebdev/grub-crypto-deluks)**. See the [Wiki: System encryption](https://github.com/kriswebdev/cryptsetup-deluks/wiki/System-encryption) for instructions.
+`cryptsetup`(`-deluks`) relies on the kernel `dm-crypt`, that is very stable and maintained, to manage the payload encryption/decryption. Indeed, `cryptsetup`(`-deluks`) is just a tool focused on encryption header management. It tells `dm-crypt` where the payload data is on the disk, gives it the key and encryption settings, and that's it.
 
-Beta 0.2 available!
-===
+**Support is discontinued for system encryption.** System encryption works on Ubuntu 16.04 and 18.10.
 
-`cryptsetup-deluks` is leaving the Alpha stage and is now in Beta stage, version 0.2.
+**Support is kept for non-system encryption.** Non-system encryption works on Ubuntu 16.04 up to 26.04 (current as of 2026).
 
-Instructions are written for and tested on **Ubuntu 16.04** and **18.10**.
+Keep in mind that your system keeps logs and tracks of what you do, so if deniability is really your objective, you should consider another supported solution, or running everything from a USB live stick.
 
-`cryptsetup`(`-deluks`) relies on the kernel `dm-crypt` (which is very stable) to manage the payload encryption/decryption. Indeed, `cryptsetup`(`-deluks`) is just a tool focused on encryption header management. It tells `dm-crypt` where the payload data is on the disk, gives it the key and encryption settings, and that's all. You can be confident about the "beta" status, at least in terms of encryption.
+Instructions below are for **Non-system encryption**.
 
-To upgrade to Beta 0.2 (which contains a major header deniability fix), use the command: `cryptsetup deluksUpgrade <disk>`. You can backup your header with the command `dd if=<deluks_disk> of=<backup_file> bs=512 count=2008`, however, this will look suspicious if you don't wipe your backup after the upgrade.
-
-Install : System encryption
----
-
-Not supported on Ubuntu 19.
-
-Note: To create a deniable bootable system, check "Setup case" instructions below before installing cryptsetup.
-
-Replace `libgcrypt11-dev` by `libgcrypt20-dev` in the following command if you get an non-existing package error.
-
-    if ! grep "universe" "/etc/apt/sources.list" &>/dev/null; then echo -e "\e[43mEnable universe repository, through software-properties-gtk""\e[0m"; software-properties-gtk &>/dev/null ; else echo "OK"; fi
-    sudo apt-get install git libgcrypt11-dev libdevmapper-dev libpopt-dev uuid-dev libtool automake autopoint debhelper xsltproc docbook-xsl dpkg-dev lvm2
-    git clone --depth=1 https://github.com/kriswebdev/cryptsetup-deluks.git
-    cd cryptsetup-deluks
-    CRYPTLIBDIR=`dirname $(find /lib -name libcryptsetup.so)`
-    # Must not be empty:
-    echo $CRYPTLIBDIR
-    sudo apt-mark hold *cryptsetup*
-    ./autogen.sh --prefix=/usr --sbindir=/sbin --libdir="$CRYPTLIBDIR"
-    make
-    sudo make install
-
-Install : Non-system encryption
+Build and Install
 ---
 
 This install method avoids messing with your distribution `cryptsetup*` packages; however, it can't be used for system encryption.
 
-Replace `libgcrypt11-dev` by `libgcrypt20-dev` in the following command if you get an non-existing package error.
+Works with `libgcrypt11-dev` or `libgcrypt20-dev` depending on what's available for your system.
 
-    if ! grep "universe" "/etc/apt/sources.list" &>/dev/null; then echo -e "\e[43mEnable universe repository, through software-properties-gtk""\e[0m"; software-properties-gtk &>/dev/null ; else echo "OK"; fi
-    sudo apt-get install git libgcrypt11-dev libdevmapper-dev libpopt-dev uuid-dev libtool automake autopoint debhelper xsltproc docbook-xsl dpkg-dev lvm2
+    if ! apt-cache policy | grep "universe" &>/dev/null; then echo -e "\e[43mEnable universe repository, through software-properties-gtk""\e[0m"; software-properties-gtk &>/dev/null ; else echo "OK"; fi
+    sudo apt-get install git libgcrypt20-dev libdevmapper-dev libpopt-dev uuid-dev libtool automake autopoint debhelper xsltproc docbook-xsl dpkg-dev lvm2
     git clone --depth=1 https://github.com/kriswebdev/cryptsetup-deluks.git
     cd cryptsetup-deluks
     ./autogen.sh --prefix=/usr
     make
     sudo ln -s `readlink -f src/cryptsetup` /usr/bin/cryptd
-    sudo ln -s `readlink -f src/cryptsetup` /usr/bin/cryptsetup
     cryptd --help
-    cryptsetup --help
 
-The last line of `cryptsetup` help should begin with "DELUKS1". Otherwise, it means you distribution `cryptsetup-bin` package is installed and takes precedence. If you plan to keep your distribution `cryptsetup-bin` package, just replace `cryptsetup` by `cryptd` in the following instructions.
+cryptd binary and libaries will run from the /src folder, to avoid conflicts with system native cryptsetup. Keep this folder.
 
-You can `chown -R root:root .` the current cryptsetup folder for improved security against software modification.
-
-Run
+Create and Open an Deniable Encrypted Volume
 ---
-
-Help:
-
-    cryptsetup --help
 
 List your drives:
 
@@ -93,50 +61,50 @@ Run as root:
       pv --progress --eta --rate --bytes --size "$DISKSIZE" |
       dd of=/dev/"$DISK" bs=2M
 
-Create:
+Create and Open:
 
-    cryptsetup deluksFormat /dev/sdX
-    # Debug:
-    # cryptsetup -v --debug deluksDump /dev/sdX
+    cryptd deluksFormat /dev/sdX
+    cryptd open /dev/sdX --type deluks deluks_vol
 
-Open:
+To close:
 
-    cryptsetup open /dev/sdX --type deluks deluks_vol
+    cryptd close deluks_vol
 
-Close:
-
-    cryptsetup close deluks_vol
-
-Setup case: Non-system encryption
+Create and Mount a Filesystem
 ---
 
-> This is a simple setup with only one filesystem inside the encrypted volume (no partition table, no LVM). It is used to store data. Please keep in mind that your system keeps logs and tracks of what you do, so if deniability is really your objective, you should consider the system encryption setup case.
+After installing `cryptsetup-deluks` (`cryptd`) create and open the DeLUKS volume:
 
-First, install cryptsetup, then create and open the DeLUKS volume (see above instructions).
-
-Create & mount the filesystem:
+Create and Mount the filesystem:
 
     mkfs.ext4 /dev/mapper/deluks_vol
     mkdir /mnt/mount_point
     # To allow the current user to access the mount_point:
     $ sudo chown `id -u -n -r`:`id -g -n -r` /mnt/mount_point
     mount /dev/mapper/deluks_vol /mnt/mount_point
-    ...
+
+To unmount:
+
     umount /mnt/mount_point
-
-Setup case: System encryption
----
-
-See the [Wiki: System encryption](https://github.com/kriswebdev/cryptsetup-deluks/wiki/System-encryption).
-
 
 Uninstall
 ---
 
-To uninstall and return to your the distribution `cryptsetup` packages:
+    sudo rm /usr/bin/cryptd
 
-    sudo apt-mark unhold *cryptsetup*
-    sudo apt-get install --reinstall --only-upgrade *cryptsetup* 
+Help
+---
+
+    cryptd --help
+    
+About system encryption (DISCOUNTINUED)
+---
+
+Works on **Ubuntu 16.04** and **18.10**. Not supported on Ubuntu 19+.
+
+See the [Wiki: System encryption](https://github.com/kriswebdev/cryptsetup-deluks/wiki/System-encryption).
+
+For system encryption, there is a parrallel project to implement DeLUKS in GRUB Cryptomount: **[grub-crypto-deluks](https://github.com/kriswebdev/grub-crypto-deluks)**. See the [Wiki: System encryption](https://github.com/kriswebdev/cryptsetup-deluks/wiki/System-encryption) for instructions.
 
 DeLUKS Features
 ===
@@ -157,7 +125,7 @@ DeLUKS Features
 Specifications
 ===
 
-**TODO**. In the meantime, you can take a look at [deluks.h](https://github.com/kriswebdev/cryptsetup-deluks/blob/master/lib/deluks1/deluks.h).
+You can take a look at [deluks.h](https://github.com/kriswebdev/cryptsetup-deluks/blob/master/lib/deluks1/deluks.h).
 
 Basically, only the random-looking salts, master key digest and password-salt-PBKDF2-encrypted key materials are left as-is on disk, like in LUKS header. 
 
