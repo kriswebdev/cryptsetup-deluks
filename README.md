@@ -34,7 +34,7 @@ Works with `libgcrypt11-dev` or `libgcrypt20-dev` depending on what's available 
 
 cryptd binary and libaries will run from the /src folder, to avoid conflicts with system native cryptsetup. Keep this folder.
 
-Create and Open an Deniable Encrypted Volume
+Create and Open a DeLUKS Encrypted Volume
 ---
 
 List your drives:
@@ -48,6 +48,8 @@ Run as root:
     sudo su
 
 > Warning: If you are using an **SSD** with sensitive data already present on it, you should sanitize it using **ATA Secure Erase** BEFORE wiping the drive with the command below. ATA Secure Erase tries to erase the otherwise unaccessible disk wear-level blocks and bad blocks. ATA Secure Erase is performed using Linux [hdparm](https://ata.wiki.kernel.org/index.php/ATA_Secure_Erase) or using the SSD manufacturer tools, preferably after upgrading the disk firmware.
+
+You can use whole drives (sdX) or partitions (sdX<number>).
 
 [**Wipe your drive** with random data, fast](http://unix.stackexchange.com/questions/72216/fast-way-to-randomize-hd):
 
